@@ -1,0 +1,96 @@
+
+/* General Styles */
+body {
+  background-color: #000; /* Black background */
+  color: #00f0ff; /* Neon blue text */
+  font-family: 'Arial', sans-serif;
+  text-align: center;
+  padding: 20px;
+}
+
+h1, h2 {
+  color: #00f0ff; /* Neon blue text */
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px #00f0ff; /* Glow effect */
+}
+
+input, button {
+  padding: 10px;
+  margin: 10px;
+  border: 2px solid #00f0ff; /* Neon blue border */
+  background: #000; /* Black background */
+  color: #00f0ff; /* Neon blue text */
+  border-radius: 5px; /* Rounded corners */
+  transition: all 0.3s ease; /* Smooth hover effects */
+}
+
+button:hover {
+  background: #00f0ff; /* Neon blue background on hover */
+  color: #000; /* Black text on hover */
+  cursor: pointer;
+  box-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff; /* Glow effect on hover */
+}
+
+ul {
+  list-style-type: none; /* Remove bullet points */
+  padding: 0;
+}
+
+li {
+  margin: 8px 0;
+  padding: 8px;
+  border-bottom: 1px solid #00f0ff; /* Neon blue divider */
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+  input, button {
+    padding: 8px;
+    font-size: 14px;
+  }
+  h1, h2 {
+    font-size: 20px;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #000; /* Black background for scrollbar track */
+}
+::-webkit-scrollbar-thumb {
+  background: #00f0ff; /* Neon blue scrollbar thumb */
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00ffff; /* Brighter neon blue on hover */
+}
+
+/* Label Styling */
+label {
+  display: block;
+  margin: 10px 0 5px;
+  color: #00f0ff; /* Neon blue text */
+  text-shadow: 0 0 5px #00f0ff; /* Glow effect */
+}
+
+/* Input Fields for Latitude, Longitude, Radius, and Admin Code */
+input[type="number"], input[type="text"] {
+  width: 80%; /* Responsive width */
+  max-width: 300px; /* Maximum width */
+  margin: 0 auto 10px; /* Center alignment */
+  display: block;
+}
+
+/* Buttons for Admin Actions */
+button {
+  width: 80%; /* Responsive width */
+  max-width: 200px; /* Maximum width */
+  margin: 10px auto; /* Center alignment */
+  display: block;
+}

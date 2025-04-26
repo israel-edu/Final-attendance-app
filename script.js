@@ -1,11 +1,5 @@
 // Constants (Hardcoded Values)
 const SPECIAL_CODE = "Israel"; // Hardcoded special code
-const WORKSPACE = {
-  lat: 37.7749, // Example latitude (San Francisco)
-  lng: -122.4194, // Example longitude (San Francisco)
-  radius: 300, // Workspace radius in meters
-  verticalTolerance: 50 // Vertical tolerance in meters
-};
 
 // GitHub Gist Configuration
 const GIST_ID = "YOUR_GIST_ID"; // Replace with your Gist ID
@@ -19,6 +13,42 @@ function getQueryParameter(name) {
 
 // Admin Dashboard Functionality
 function setupAdminDashboard() {
+  // Save workspace location, vertical tolerance, and radius
+  document.getElementById('saveWorkspaceBtn')?.addEventListener('click', async () => {
+    const lat = parseFloat(document.getElementById('workspaceLat').value);
+    const lng = parseFloat(document.getElementById('workspaceLng').value);
+    const verticalTolerance = parseFloat(document.getElementById('workspaceVerticalTolerance').value);
+    const radius = parseFloat(document.getElementById('workspaceRadius').value);
+
+    if (!lat || !lng || !radius || isNaN(verticalTolerance)) {
+      alert("Please enter valid latitude, longitude, vertical tolerance, and radius.");
+      return;
+    }
+
+    try {
+      await saveWorkspaceSettings({ lat, lng, verticalTolerance, radius });
+      alert("Workspace settings saved successfully!");
+    } catch (err) {
+      console.error("Error saving workspace settings:", err);
+      alert("Failed to save workspace settings. Please try again.");
+    }
+  });
+
+  // Load workspace settings on page load
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const workspace = await loadWorkspaceSettings();
+      if (workspace) {
+        document.getElementById('workspaceLat').value = workspace.lat.toFixed(5);
+        document.getElementById('workspaceLng').value = workspace.lng.toFixed(5);
+        document.getElementById('workspaceVerticalTolerance').value = workspace.verticalTolerance;
+        document.getElementById('workspaceRadius').value = workspace.radius;
+      }
+    } catch (err) {
+      console.error("Error loading workspace settings:", err);
+    }
+  });
+
   // View check-in history
   document.getElementById('viewHistoryBtn')?.addEventListener('click', async () => {
     const code = prompt("Enter admin code to view check-ins:");
@@ -94,18 +124,25 @@ function setupUserCheckIn() {
         altitude: position.altitude 
       };
 
+      // Load workspace settings
+      const workspace = await loadWorkspaceSettings();
+      if (!workspace) {
+        alert("Workspace settings not configured. Please contact the admin.");
+        return;
+      }
+
       // Calculate horizontal distance
       const horizontalDistance = calculateDistance(
         userLocation.lat,
         userLocation.lng,
-        WORKSPACE.lat,
-        WORKSPACE.lng
+        workspace.lat,
+        workspace.lng
       );
 
       // Check vertical tolerance
       const verticalDistance = Math.abs(userLocation.altitude - (position.altitude || 0));
 
-      if (horizontalDistance <= WORKSPACE.radius && verticalDistance <= WORKSPACE.verticalTolerance) {
+      if (horizontalDistance <= workspace.radius && verticalDistance <= workspace.verticalTolerance) {
         // Successful check-in
         await saveCheckIn(name, userLocation);
         alert(`Check-in successful! Welcome, ${name}.`);
@@ -155,6 +192,67 @@ function getLocation() {
   });
 }
 
+// Function to save workspace settings to GitHub Gist
+async function saveWorkspaceSettings(workspace) {
+  try {
+    const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: "GET",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch Gist data.");
+    }
+
+    const gistData = await response.json();
+    const checkIns = JSON.parse(gistData.files["checkIns.json"].content).checkIns;
+
+    // Update the Gist with new workspace settings
+    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        files: {
+          "checkIns.json": {
+            content: JSON.stringify({ workspace, checkIns }, null, 2)
+          }
+        }
+      })
+    });
+  } catch (err) {
+    console.error("Error saving workspace settings:", err);
+    throw err;
+  }
+}
+
+// Function to load workspace settings from GitHub Gist
+async function loadWorkspaceSettings() {
+  try {
+    const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: "GET",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch Gist data.");
+    }
+
+    const gistData = await response.json();
+    const workspace = JSON.parse(gistData.files["checkIns.json"].content).workspace;
+    return workspace || null;
+  } catch (err) {
+    console.error("Error loading workspace settings:", err);
+    return null;
+  }
+}
+
 // Function to save check-in data to GitHub Gist
 async function saveCheckIn(name, location) {
   try {
@@ -170,6 +268,7 @@ async function saveCheckIn(name, location) {
     }
 
     const gistData = await response.json();
+    const workspace = JSON.parse(gistData.files["checkIns.json"].content).workspace;
     const checkIns = JSON.parse(gistData.files["checkIns.json"].content).checkIns;
 
     // Add the new check-in
@@ -191,14 +290,14 @@ async function saveCheckIn(name, location) {
       body: JSON.stringify({
         files: {
           "checkIns.json": {
-            content: JSON.stringify({ checkIns }, null, 2)
+            content: JSON.stringify({ workspace, checkIns }, null, 2)
           }
         }
       })
     });
   } catch (err) {
     console.error("Error saving check-in:", err);
-    alert("Failed to save check-in. Please try again.");
+    throw err;
   }
 }
 
@@ -221,7 +320,6 @@ async function loadHistory() {
     return checkIns || [];
   } catch (err) {
     console.error("Error loading check-in history:", err);
-    alert("Failed to load check-in history.");
     return [];
   }
 }
@@ -229,6 +327,8 @@ async function loadHistory() {
 // Function to clear check-in history
 async function clearHistory() {
   try {
+    const workspace = await loadWorkspaceSettings();
+
     await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: "PATCH",
       headers: {
@@ -238,20 +338,20 @@ async function clearHistory() {
       body: JSON.stringify({
         files: {
           "checkIns.json": {
-            content: JSON.stringify({ checkIns: [] }, null, 2)
+            content: JSON.stringify({ workspace, checkIns: [] }, null, 2)
           }
         }
       })
     });
   } catch (err) {
     console.error("Error clearing check-in history:", err);
-    alert("Failed to clear check-in history.");
+    throw err;
   }
 }
 
 // Determine which page is loaded and initialize the appropriate functionality
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('viewHistoryBtn')) {
+  if (document.getElementById('saveWorkspaceBtn')) {
     // Admin Dashboard Page
     setupAdminDashboard();
   } else if (document.getElementById('checkInBtn')) {

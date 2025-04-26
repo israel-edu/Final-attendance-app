@@ -114,7 +114,6 @@ function setupAdminDashboard() {
     }
 
     try {
-      // Note: To clear history in Firestore, you'd need to delete all documents in the "checkIns" collection.
       alert("Clearing history is not implemented in this version.");
     } catch (err) {
       console.error("Error clearing check-in history:", err);
@@ -236,6 +235,15 @@ function getLocation() {
 // Function to save check-in data to Firebase
 async function saveCheckIn(name, location) {
   try {
+    console.log("Saving check-in to Firestore...");
+    console.log("Check-in data:", {
+      name: name,
+      time: new Date().toISOString(),
+      latitude: location.lat.toFixed(5),
+      longitude: location.lng.toFixed(5),
+      altitude: location.altitude.toFixed(2)
+    });
+
     const docRef = await addDoc(collection(window.db, "checkIns"), {
       name: name,
       time: new Date().toISOString(),
@@ -243,6 +251,7 @@ async function saveCheckIn(name, location) {
       longitude: location.lng.toFixed(5),
       altitude: location.altitude.toFixed(2)
     });
+
     console.log("Check-in saved with ID:", docRef.id);
   } catch (err) {
     console.error("Error saving check-in:", err);
@@ -253,11 +262,22 @@ async function saveCheckIn(name, location) {
 // Function to load check-in history from Firebase
 async function loadHistory() {
   try {
+    console.log("Fetching check-in history from Firestore...");
     const querySnapshot = await getDocs(collection(window.db, "checkIns"));
+    console.log("Query snapshot:", querySnapshot);
+
+    if (querySnapshot.empty) {
+      console.log("No check-ins found in Firestore.");
+      return [];
+    }
+
     const history = [];
     querySnapshot.forEach((doc) => {
+      console.log("Document data:", doc.data());
       history.push(doc.data());
     });
+
+    console.log("Loaded check-in history:", history);
     return history;
   } catch (err) {
     console.error("Error loading check-in history:", err);

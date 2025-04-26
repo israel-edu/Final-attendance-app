@@ -1,6 +1,12 @@
 // Constants
 let SPECIAL_CODE = localStorage.getItem("specialCode") || "Israel"; // Default code is "Israel"
 
+// Helper Function to Get Query Parameters
+function getQueryParameter(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
+
 // Admin Dashboard Functionality
 function setupAdminDashboard() {
   // Save workspace location, vertical tolerance, and radius
@@ -46,6 +52,13 @@ function setupAdminDashboard() {
     }
   });
 
+  // Generate Check-In Link
+  document.getElementById('generateLinkBtn')?.addEventListener('click', () => {
+    const currentCode = localStorage.getItem("specialCode") || "Israel";
+    const link = `${window.location.origin}/index.html?code=${encodeURIComponent(currentCode)}`;
+    document.getElementById('shareableLink').textContent = `Share this link: ${link}`;
+  });
+
   // View check-in history
   document.getElementById('viewHistoryBtn')?.addEventListener('click', () => {
     const code = prompt("Enter admin code to view check-ins:");
@@ -87,6 +100,12 @@ function setupAdminDashboard() {
 
 // User Check-In Functionality
 function setupUserCheckIn() {
+  // Extract the special code from the query string
+  const codeFromURL = getQueryParameter("code");
+  if (codeFromURL) {
+    document.getElementById('codeInput').value = decodeURIComponent(codeFromURL);
+  }
+
   document.getElementById('checkInBtn')?.addEventListener('click', async () => {
     const name = document.getElementById('nameInput').value.trim();
     const code = document.getElementById('codeInput').value.trim();
@@ -96,7 +115,9 @@ function setupUserCheckIn() {
       return;
     }
 
-    if (code !== SPECIAL_CODE) {
+    // Validate the code (match against the one in the query string)
+    const expectedCode = getQueryParameter("code");
+    if (code !== expectedCode) {
       alert("Access denied. Incorrect code.");
       return;
     }

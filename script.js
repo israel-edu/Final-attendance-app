@@ -7,6 +7,10 @@ const WORKSPACE = {
   verticalTolerance: 50 // Vertical tolerance in meters
 };
 
+// GitHub Gist Configuration
+const GIST_ID = "YOUR_GIST_ID"; // Replace with your Gist ID
+const GITHUB_TOKEN = "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"; // Your GitHub Personal Access Token
+
 // Helper Function to Get Query Parameters
 function getQueryParameter(name) {
   const urlParams = new URLSearchParams(window.location.search);
@@ -16,7 +20,7 @@ function getQueryParameter(name) {
 // Admin Dashboard Functionality
 function setupAdminDashboard() {
   // View check-in history
-  document.getElementById('viewHistoryBtn')?.addEventListener('click', () => {
+  document.getElementById('viewHistoryBtn')?.addEventListener('click', async () => {
     const code = prompt("Enter admin code to view check-ins:");
 
     if (code !== SPECIAL_CODE) {
@@ -24,24 +28,29 @@ function setupAdminDashboard() {
       return;
     }
 
-    const history = loadHistory();
-    const historyList = document.getElementById('historyList');
-    historyList.innerHTML = "";
+    try {
+      const history = await loadHistory();
+      const historyList = document.getElementById('historyList');
+      historyList.innerHTML = "";
 
-    if (history.length === 0) {
-      historyList.innerHTML = "<li>No check-ins found.</li>";
-      return;
+      if (history.length === 0) {
+        historyList.innerHTML = "<li>No check-ins found.</li>";
+        return;
+      }
+
+      history.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.name} - ${item.time} [Lat: ${item.latitude}, Lng: ${item.longitude}, Alt: ${item.altitude}]`;
+        historyList.appendChild(li);
+      });
+    } catch (err) {
+      console.error("Error loading check-in history:", err);
+      alert("Failed to load check-in history.");
     }
-
-    history.forEach(item => {
-      const li = document.createElement('li');
-      li.textContent = `${item.name} - ${item.time} [Lat: ${item.latitude}, Lng: ${item.longitude}, Alt: ${item.altitude}]`;
-      historyList.appendChild(li);
-    });
   });
 
   // Clear check-in history
-  document.getElementById('clearHistoryBtn')?.addEventListener('click', () => {
+  document.getElementById('clearHistoryBtn')?.addEventListener('click', async () => {
     const code = prompt("Enter admin code to clear check-ins:");
 
     if (code !== SPECIAL_CODE) {
@@ -49,8 +58,13 @@ function setupAdminDashboard() {
       return;
     }
 
-    clearHistory();
-    document.getElementById('historyList').innerHTML = "<li>History cleared.</li>";
+    try {
+      await clearHistory();
+      document.getElementById('historyList').innerHTML = "<li>History cleared.</li>";
+    } catch (err) {
+      console.error("Error clearing check-in history:", err);
+      alert("Failed to clear check-in history.");
+    }
   });
 }
 
@@ -93,7 +107,7 @@ function setupUserCheckIn() {
 
       if (horizontalDistance <= WORKSPACE.radius && verticalDistance <= WORKSPACE.verticalTolerance) {
         // Successful check-in
-        saveCheckIn(name, userLocation);
+        await saveCheckIn(name, userLocation);
         alert(`Check-in successful! Welcome, ${name}.`);
       } else {
         // Failed check-in
@@ -141,27 +155,98 @@ function getLocation() {
   });
 }
 
-// Function to save check-in data to localStorage
-function saveCheckIn(name, location) {
-  const history = JSON.parse(localStorage.getItem("checkInHistory") || "[]");
-  history.unshift({
-    name,
-    time: new Date().toISOString(),
-    latitude: location.lat.toFixed(5),
-    longitude: location.lng.toFixed(5),
-    altitude: location.altitude.toFixed(2)
-  });
-  localStorage.setItem("checkInHistory", JSON.stringify(history));
+// Function to save check-in data to GitHub Gist
+async function saveCheckIn(name, location) {
+  try {
+    const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: "GET",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch Gist data.");
+    }
+
+    const gistData = await response.json();
+    const checkIns = JSON.parse(gistData.files["checkIns.json"].content).checkIns;
+
+    // Add the new check-in
+    checkIns.unshift({
+      name,
+      time: new Date().toISOString(),
+      latitude: location.lat.toFixed(5),
+      longitude: location.lng.toFixed(5),
+      altitude: location.altitude.toFixed(2)
+    });
+
+    // Update the Gist
+    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        files: {
+          "checkIns.json": {
+            content: JSON.stringify({ checkIns }, null, 2)
+          }
+        }
+      })
+    });
+  } catch (err) {
+    console.error("Error saving check-in:", err);
+    alert("Failed to save check-in. Please try again.");
+  }
 }
 
-// Function to load check-in history from localStorage
-function loadHistory() {
-  return JSON.parse(localStorage.getItem("checkInHistory") || "[]");
+// Function to load check-in history from GitHub Gist
+async function loadHistory() {
+  try {
+    const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: "GET",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch Gist data.");
+    }
+
+    const gistData = await response.json();
+    const checkIns = JSON.parse(gistData.files["checkIns.json"].content).checkIns;
+    return checkIns || [];
+  } catch (err) {
+    console.error("Error loading check-in history:", err);
+    alert("Failed to load check-in history.");
+    return [];
+  }
 }
 
 // Function to clear check-in history
-function clearHistory() {
-  localStorage.removeItem("checkInHistory");
+async function clearHistory() {
+  try {
+    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        files: {
+          "checkIns.json": {
+            content: JSON.stringify({ checkIns: [] }, null, 2)
+          }
+        }
+      })
+    });
+  } catch (err) {
+    console.error("Error clearing check-in history:", err);
+    alert("Failed to clear check-in history.");
+  }
 }
 
 // Determine which page is loaded and initialize the appropriate functionality

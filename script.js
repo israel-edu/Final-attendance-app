@@ -1,5 +1,11 @@
-// Constants
-let SPECIAL_CODE = localStorage.getItem("specialCode") || "Israel"; // Default code is "Israel"
+// Constants (Hardcoded Values)
+const SPECIAL_CODE = "Israel"; // Hardcoded special code
+const WORKSPACE = {
+  lat: 37.7749, // Example latitude (San Francisco)
+  lng: -122.4194, // Example longitude (San Francisco)
+  radius: 300, // Workspace radius in meters
+  verticalTolerance: 50 // Vertical tolerance in meters
+};
 
 // Helper Function to Get Query Parameters
 function getQueryParameter(name) {
@@ -9,73 +15,8 @@ function getQueryParameter(name) {
 
 // Admin Dashboard Functionality
 function setupAdminDashboard() {
-  // Save workspace location, vertical tolerance, and radius
-  document.getElementById('saveWorkspaceBtn')?.addEventListener('click', () => {
-    const lat = parseFloat(document.getElementById('workspaceLat').value);
-    const lng = parseFloat(document.getElementById('workspaceLng').value);
-    const verticalTolerance = parseFloat(document.getElementById('workspaceVerticalTolerance').value);
-    const radius = parseFloat(document.getElementById('workspaceRadius').value);
-
-    if (!lat || !lng || !radius || isNaN(verticalTolerance)) {
-      alert("Please enter valid latitude, longitude, vertical tolerance, and radius.");
-      return;
-    }
-
-    // Save workspace data to localStorage
-    localStorage.setItem("workspace", JSON.stringify({ lat, lng, verticalTolerance, radius }));
-    alert("Workspace location, vertical tolerance, and radius saved successfully!");
-  });
-
-  // Auto Set Location Button
-  document.getElementById('autoSetLocationBtn')?.addEventListener('click', async () => {
-    try {
-      const position = await getLocation();
-      document.getElementById('workspaceLat').value = position.latitude.toFixed(5);
-      document.getElementById('workspaceLng').value = position.longitude.toFixed(5);
-      alert("Your device's location has been auto-set.");
-    } catch (err) {
-      alert(err.message || "Unable to retrieve your location.");
-    }
-  });
-
-  // Set Admin Code (Optional)
-  document.getElementById('changeCodeBtn')?.addEventListener('click', () => {
-    const newCode = document.getElementById('newCodeInput').value.trim();
-
-    if (newCode) {
-      // Update the special code only if a new one is provided
-      SPECIAL_CODE = newCode;
-      localStorage.setItem("specialCode", newCode); // Save the new code to localStorage
-      alert("Admin code updated successfully!");
-    } else {
-      alert("No new admin code provided. The current code remains unchanged.");
-    }
-  });
-
-  // Generate Check-In Link
-  document.getElementById('generateLinkBtn')?.addEventListener('click', () => {
-    const currentCode = localStorage.getItem("specialCode") || "Israel";
-    const workspace = loadWorkspace();
-    if (!workspace) {
-      alert("Workspace location not set. Please set the workspace first.");
-      return;
-    }
-
-    // Encode workspace settings and special code into the URL
-    const queryParams = new URLSearchParams({
-      code: currentCode,
-      lat: workspace.lat,
-      lng: workspace.lng,
-      radius: workspace.radius,
-      tolerance: workspace.verticalTolerance,
-    }).toString();
-
-    const link = `${window.location.origin}/index.html?${queryParams}`;
-    document.getElementById('shareableLink').textContent = `Share this link: ${link}`;
-  });
-
   // View check-in history
-  document.getElementById('viewHistoryBtn')?.addEventListener('click', async () => {
+  document.getElementById('viewHistoryBtn')?.addEventListener('click', () => {
     const code = prompt("Enter admin code to view check-ins:");
 
     if (code !== SPECIAL_CODE) {
@@ -83,29 +24,24 @@ function setupAdminDashboard() {
       return;
     }
 
-    try {
-      const history = await loadHistory();
-      const historyList = document.getElementById('historyList');
-      historyList.innerHTML = "";
+    const history = loadHistory();
+    const historyList = document.getElementById('historyList');
+    historyList.innerHTML = "";
 
-      if (history.length === 0) {
-        historyList.innerHTML = "<li>No check-ins found.</li>";
-        return;
-      }
-
-      history.forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = `${item.name} - ${item.time} [Lat: ${item.latitude}, Lng: ${item.longitude}, Alt: ${item.altitude}]`;
-        historyList.appendChild(li);
-      });
-    } catch (err) {
-      console.error("Error loading check-in history:", err);
-      alert("An error occurred while loading check-ins.");
+    if (history.length === 0) {
+      historyList.innerHTML = "<li>No check-ins found.</li>";
+      return;
     }
+
+    history.forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = `${item.name} - ${item.time} [Lat: ${item.latitude}, Lng: ${item.longitude}, Alt: ${item.altitude}]`;
+      historyList.appendChild(li);
+    });
   });
 
   // Clear check-in history
-  document.getElementById('clearHistoryBtn')?.addEventListener('click', async () => {
+  document.getElementById('clearHistoryBtn')?.addEventListener('click', () => {
     const code = prompt("Enter admin code to clear check-ins:");
 
     if (code !== SPECIAL_CODE) {
@@ -113,32 +49,13 @@ function setupAdminDashboard() {
       return;
     }
 
-    try {
-      alert("Clearing history is not implemented in this version.");
-    } catch (err) {
-      console.error("Error clearing check-in history:", err);
-      alert("An error occurred while clearing check-ins.");
-    }
+    clearHistory();
+    document.getElementById('historyList').innerHTML = "<li>History cleared.</li>";
   });
 }
 
 // User Check-In Functionality
 function setupUserCheckIn() {
-  // Extract workspace settings and special code from the query string
-  const codeFromURL = getQueryParameter("code");
-  const latFromURL = parseFloat(getQueryParameter("lat"));
-  const lngFromURL = parseFloat(getQueryParameter("lng"));
-  const radiusFromURL = parseFloat(getQueryParameter("radius"));
-  const toleranceFromURL = parseFloat(getQueryParameter("tolerance"));
-
-  if (!codeFromURL || isNaN(latFromURL) || isNaN(lngFromURL) || isNaN(radiusFromURL) || isNaN(toleranceFromURL)) {
-    alert("Invalid or incomplete workspace settings in the link.");
-    return;
-  }
-
-  // Pre-fill the special code input field
-  document.getElementById('codeInput').value = decodeURIComponent(codeFromURL);
-
   document.getElementById('checkInBtn')?.addEventListener('click', async () => {
     const name = document.getElementById('nameInput').value.trim();
     const code = document.getElementById('codeInput').value.trim();
@@ -148,8 +65,8 @@ function setupUserCheckIn() {
       return;
     }
 
-    // Validate the code (match against the one in the query string)
-    if (code !== codeFromURL) {
+    // Validate the code (match against the hardcoded value)
+    if (code !== SPECIAL_CODE) {
       alert("Access denied. Incorrect code.");
       return;
     }
@@ -163,28 +80,20 @@ function setupUserCheckIn() {
         altitude: position.altitude 
       };
 
-      // Use workspace settings from the query string
-      const workspace = {
-        lat: latFromURL,
-        lng: lngFromURL,
-        radius: radiusFromURL,
-        verticalTolerance: toleranceFromURL,
-      };
-
       // Calculate horizontal distance
       const horizontalDistance = calculateDistance(
         userLocation.lat,
         userLocation.lng,
-        workspace.lat,
-        workspace.lng
+        WORKSPACE.lat,
+        WORKSPACE.lng
       );
 
       // Check vertical tolerance
       const verticalDistance = Math.abs(userLocation.altitude - (position.altitude || 0));
 
-      if (horizontalDistance <= workspace.radius && verticalDistance <= workspace.verticalTolerance) {
+      if (horizontalDistance <= WORKSPACE.radius && verticalDistance <= WORKSPACE.verticalTolerance) {
         // Successful check-in
-        await saveCheckIn(name, userLocation);
+        saveCheckIn(name, userLocation);
         alert(`Check-in successful! Welcome, ${name}.`);
       } else {
         // Failed check-in
@@ -232,68 +141,32 @@ function getLocation() {
   });
 }
 
-// Function to save check-in data to Firebase
-async function saveCheckIn(name, location) {
-  try {
-    console.log("Saving check-in to Firestore...");
-    console.log("Check-in data:", {
-      name: name,
-      time: new Date().toISOString(),
-      latitude: location.lat.toFixed(5),
-      longitude: location.lng.toFixed(5),
-      altitude: location.altitude.toFixed(2)
-    });
-
-    const docRef = await addDoc(collection(window.db, "checkIns"), {
-      name: name,
-      time: new Date().toISOString(),
-      latitude: location.lat.toFixed(5),
-      longitude: location.lng.toFixed(5),
-      altitude: location.altitude.toFixed(2)
-    });
-
-    console.log("Check-in saved with ID:", docRef.id);
-  } catch (err) {
-    console.error("Error saving check-in:", err);
-    alert("Failed to save check-in. Please try again.");
-  }
+// Function to save check-in data to localStorage
+function saveCheckIn(name, location) {
+  const history = JSON.parse(localStorage.getItem("checkInHistory") || "[]");
+  history.unshift({
+    name,
+    time: new Date().toISOString(),
+    latitude: location.lat.toFixed(5),
+    longitude: location.lng.toFixed(5),
+    altitude: location.altitude.toFixed(2)
+  });
+  localStorage.setItem("checkInHistory", JSON.stringify(history));
 }
 
-// Function to load check-in history from Firebase
-async function loadHistory() {
-  try {
-    console.log("Fetching check-in history from Firestore...");
-    const querySnapshot = await getDocs(collection(window.db, "checkIns"));
-    console.log("Query snapshot:", querySnapshot);
-
-    if (querySnapshot.empty) {
-      console.log("No check-ins found in Firestore.");
-      return [];
-    }
-
-    const history = [];
-    querySnapshot.forEach((doc) => {
-      console.log("Document data:", doc.data());
-      history.push(doc.data());
-    });
-
-    console.log("Loaded check-in history:", history);
-    return history;
-  } catch (err) {
-    console.error("Error loading check-in history:", err);
-    alert("Failed to load check-in history.");
-    return [];
-  }
+// Function to load check-in history from localStorage
+function loadHistory() {
+  return JSON.parse(localStorage.getItem("checkInHistory") || "[]");
 }
 
-// Function to load workspace settings
-function loadWorkspace() {
-  return JSON.parse(localStorage.getItem("workspace")) || null;
+// Function to clear check-in history
+function clearHistory() {
+  localStorage.removeItem("checkInHistory");
 }
 
 // Determine which page is loaded and initialize the appropriate functionality
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('saveWorkspaceBtn')) {
+  if (document.getElementById('viewHistoryBtn')) {
     // Admin Dashboard Page
     setupAdminDashboard();
   } else if (document.getElementById('checkInBtn')) {

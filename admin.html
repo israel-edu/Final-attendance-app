@@ -8,6 +8,22 @@
 <body>
   <h1>Admin Dashboard</h1>
 
+  <!-- Workspace Location Input -->
+  <label for="workspaceLat">Workspace Latitude:</label>
+  <input type="number" id="workspaceLat" step="0.00001" placeholder="Enter latitude">
+
+  <label for="workspaceLng">Workspace Longitude:</label>
+  <input type="number" id="workspaceLng" step="0.00001" placeholder="Enter longitude">
+
+  <label for="workspaceVerticalTolerance">Vertical Tolerance (meters):</label>
+  <input type="number" id="workspaceVerticalTolerance" placeholder="Enter tolerance" value="50">
+
+  <label for="workspaceRadius">Workspace Radius (meters):</label>
+  <input type="number" id="workspaceRadius" placeholder="Enter radius" value="300">
+  <span style="color: #00f0ff; font-size: 12px;">(Recommended: 300–500)</span>
+
+  <button id="saveWorkspaceBtn">Save Workspace</button>
+
   <!-- View Check-In History -->
   <button id="viewHistoryBtn">View Check-Ins</button>
   <button id="clearHistoryBtn">Clear History</button>

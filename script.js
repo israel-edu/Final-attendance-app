@@ -55,7 +55,22 @@ function setupAdminDashboard() {
   // Generate Check-In Link
   document.getElementById('generateLinkBtn')?.addEventListener('click', () => {
     const currentCode = localStorage.getItem("specialCode") || "Israel";
-    const link = `${window.location.origin}/index.html?code=${encodeURIComponent(currentCode)}`;
+    const workspace = loadWorkspace();
+    if (!workspace) {
+      alert("Workspace location not set. Please set the workspace first.");
+      return;
+    }
+
+    // Encode workspace settings and special code into the URL
+    const queryParams = new URLSearchParams({
+      code: currentCode,
+      lat: workspace.lat,
+      lng: workspace.lng,
+      radius: workspace.radius,
+      tolerance: workspace.verticalTolerance,
+    }).toString();
+
+    const link = `${window.location.origin}/index.html?${queryParams}`;
     document.getElementById('shareableLink').textContent = `Share this link: ${link}`;
   });
 
@@ -100,11 +115,20 @@ function setupAdminDashboard() {
 
 // User Check-In Functionality
 function setupUserCheckIn() {
-  // Extract the special code from the query string
+  // Extract workspace settings and special code from the query string
   const codeFromURL = getQueryParameter("code");
-  if (codeFromURL) {
-    document.getElementById('codeInput').value = decodeURIComponent(codeFromURL);
+  const latFromURL = parseFloat(getQueryParameter("lat"));
+  const lngFromURL = parseFloat(getQueryParameter("lng"));
+  const radiusFromURL = parseFloat(getQueryParameter("radius"));
+  const toleranceFromURL = parseFloat(getQueryParameter("tolerance"));
+
+  if (!codeFromURL || isNaN(latFromURL) || isNaN(lngFromURL) || isNaN(radiusFromURL) || isNaN(toleranceFromURL)) {
+    alert("Invalid or incomplete workspace settings in the link.");
+    return;
   }
+
+  // Pre-fill the special code input field
+  document.getElementById('codeInput').value = decodeURIComponent(codeFromURL);
 
   document.getElementById('checkInBtn')?.addEventListener('click', async () => {
     const name = document.getElementById('nameInput').value.trim();
@@ -116,8 +140,7 @@ function setupUserCheckIn() {
     }
 
     // Validate the code (match against the one in the query string)
-    const expectedCode = getQueryParameter("code");
-    if (code !== expectedCode) {
+    if (code !== codeFromURL) {
       alert("Access denied. Incorrect code.");
       return;
     }
@@ -131,12 +154,13 @@ function setupUserCheckIn() {
         altitude: position.altitude 
       };
 
-      // Load workspace settings
-      const workspace = loadWorkspace();
-      if (!workspace) {
-        alert("Workspace location not set by admin.");
-        return;
-      }
+      // Use workspace settings from the query string
+      const workspace = {
+        lat: latFromURL,
+        lng: lngFromURL,
+        radius: radiusFromURL,
+        verticalTolerance: toleranceFromURL,
+      };
 
       // Calculate horizontal distance
       const horizontalDistance = calculateDistance(
@@ -147,10 +171,9 @@ function setupUserCheckIn() {
       );
 
       // Check vertical tolerance
-      const verticalTolerance = workspace.verticalTolerance;
       const verticalDistance = Math.abs(userLocation.altitude - (position.altitude || 0));
 
-      if (horizontalDistance <= workspace.radius && verticalDistance <= verticalTolerance) {
+      if (horizontalDistance <= workspace.radius && verticalDistance <= workspace.verticalTolerance) {
         // Successful check-in
         saveCheckIn(name, userLocation);
         alert(`Check-in successful! Welcome, ${name}.`);

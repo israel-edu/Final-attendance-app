@@ -17,27 +17,6 @@
     <a href="admin.html" style="color: #00f0ff; text-decoration: none;">Admin? Let's set up.</a>
   </p>
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBGUcj708NU-BMa5pdu7ibmom_36QU5kiQ",
-      authDomain: "attendance-app-95a10.firebaseapp.com",
-      projectId: "attendance-app-95a10",
-      storageBucket: "attendance-app-95a10.firebasestorage.app",
-      messagingSenderId: "688983236182",
-      appId: "1:688983236182:web:b10072022b7b57b04fe5f7",
-      measurementId: "G-1MRK184WYR"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    window.db = db;
-  </script>
-
   <script src="script.js" defer></script> <!-- Link to JavaScript -->
 </body>
 </html>

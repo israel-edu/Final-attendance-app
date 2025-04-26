@@ -8,34 +8,6 @@
 <body>
   <h1>Admin Dashboard</h1>
 
-  <!-- Workspace Location Input -->
-  <label for="workspaceLat">Workspace Latitude:</label>
-  <input type="number" id="workspaceLat" step="0.00001" placeholder="Enter latitude">
-
-  <label for="workspaceLng">Workspace Longitude:</label>
-  <input type="number" id="workspaceLng" step="0.00001" placeholder="Enter longitude">
-
-  <label for="workspaceVerticalTolerance">Vertical Tolerance (meters):</label>
-  <input type="number" id="workspaceVerticalTolerance" placeholder="Enter tolerance" value="20">
-
-  <label for="workspaceRadius">Workspace Radius (meters):</label>
-  <input type="number" id="workspaceRadius" placeholder="Enter radius">
-  <span style="color: #00f0ff; font-size: 12px;">(Recommended: 300–500)</span>
-
-  <button id="saveWorkspaceBtn">Save Workspace</button>
-
-  <!-- Auto Set Location Button -->
-  <button id="autoSetLocationBtn">Auto Set Location</button>
-
-  <!-- Change Admin Code -->
-  <label for="newCodeInput">Set Admin Code (Optional):</label>
-  <input type="text" id="newCodeInput" placeholder="Enter new admin code (optional)">
-  <button id="changeCodeBtn">Set Admin Code</button>
-
-  <!-- Generate Check-In Link -->
-  <button id="generateLinkBtn">Generate Check-In Link</button>
-  <p id="shareableLink" style="color: #00f0ff; font-size: 14px;"></p>
-
   <!-- View Check-In History -->
   <button id="viewHistoryBtn">View Check-Ins</button>
   <button id="clearHistoryBtn">Clear History</button>
@@ -47,27 +19,6 @@
   <p style="margin-top: 20px;">
     <a href="index.html" style="color: #00f0ff; text-decoration: none;">Check-in?</a>
   </p>
-
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBGUcj708NU-BMa5pdu7ibmom_36QU5kiQ",
-      authDomain: "attendance-app-95a10.firebaseapp.com",
-      projectId: "attendance-app-95a10",
-      storageBucket: "attendance-app-95a10.firebasestorage.app",
-      messagingSenderId: "688983236182",
-      appId: "1:688983236182:web:b10072022b7b57b04fe5f7",
-      measurementId: "G-1MRK184WYR"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    window.db = db;
-  </script>
 
   <script src="script.js" defer></script> <!-- Link to JavaScript -->
 </body>

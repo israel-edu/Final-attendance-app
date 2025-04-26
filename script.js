@@ -75,7 +75,7 @@ function setupAdminDashboard() {
   });
 
   // View check-in history
-  document.getElementById('viewHistoryBtn')?.addEventListener('click', () => {
+  document.getElementById('viewHistoryBtn')?.addEventListener('click', async () => {
     const code = prompt("Enter admin code to view check-ins:");
 
     if (code !== SPECIAL_CODE) {
@@ -83,24 +83,29 @@ function setupAdminDashboard() {
       return;
     }
 
-    const history = loadHistory();
-    const historyList = document.getElementById('historyList');
-    historyList.innerHTML = "";
+    try {
+      const history = await loadHistory();
+      const historyList = document.getElementById('historyList');
+      historyList.innerHTML = "";
 
-    if (history.length === 0) {
-      historyList.innerHTML = "<li>No check-ins found.</li>";
-      return;
+      if (history.length === 0) {
+        historyList.innerHTML = "<li>No check-ins found.</li>";
+        return;
+      }
+
+      history.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.name} - ${item.time} [Lat: ${item.latitude}, Lng: ${item.longitude}, Alt: ${item.altitude}]`;
+        historyList.appendChild(li);
+      });
+    } catch (err) {
+      console.error("Error loading check-in history:", err);
+      alert("An error occurred while loading check-ins.");
     }
-
-    history.forEach(item => {
-      const li = document.createElement('li');
-      li.textContent = `${item.name} - ${item.time} [Lat: ${item.latitude}, Lng: ${item.longitude}, Alt: ${item.altitude}]`;
-      historyList.appendChild(li);
-    });
   });
 
   // Clear check-in history
-  document.getElementById('clearHistoryBtn')?.addEventListener('click', () => {
+  document.getElementById('clearHistoryBtn')?.addEventListener('click', async () => {
     const code = prompt("Enter admin code to clear check-ins:");
 
     if (code !== SPECIAL_CODE) {
@@ -108,8 +113,13 @@ function setupAdminDashboard() {
       return;
     }
 
-    clearHistory();
-    document.getElementById('historyList').innerHTML = "<li>History cleared.</li>";
+    try {
+      // Note: To clear history in Firestore, you'd need to delete all documents in the "checkIns" collection.
+      alert("Clearing history is not implemented in this version.");
+    } catch (err) {
+      console.error("Error clearing check-in history:", err);
+      alert("An error occurred while clearing check-ins.");
+    }
   });
 }
 
@@ -175,7 +185,7 @@ function setupUserCheckIn() {
 
       if (horizontalDistance <= workspace.radius && verticalDistance <= workspace.verticalTolerance) {
         // Successful check-in
-        saveCheckIn(name, userLocation);
+        await saveCheckIn(name, userLocation);
         alert(`Check-in successful! Welcome, ${name}.`);
       } else {
         // Failed check-in
@@ -223,32 +233,42 @@ function getLocation() {
   });
 }
 
-// Function to save check-in data
-function saveCheckIn(name, location) {
-  const history = JSON.parse(localStorage.getItem("checkInHistory") || "[]");
-  history.unshift({
-    name,
-    time: new Date().toISOString(),
-    latitude: location.lat.toFixed(5),
-    longitude: location.lng.toFixed(5),
-    altitude: location.altitude.toFixed(2)
-  });
-  localStorage.setItem("checkInHistory", JSON.stringify(history));
+// Function to save check-in data to Firebase
+async function saveCheckIn(name, location) {
+  try {
+    const docRef = await addDoc(collection(window.db, "checkIns"), {
+      name: name,
+      time: new Date().toISOString(),
+      latitude: location.lat.toFixed(5),
+      longitude: location.lng.toFixed(5),
+      altitude: location.altitude.toFixed(2)
+    });
+    console.log("Check-in saved with ID:", docRef.id);
+  } catch (err) {
+    console.error("Error saving check-in:", err);
+    alert("Failed to save check-in. Please try again.");
+  }
+}
+
+// Function to load check-in history from Firebase
+async function loadHistory() {
+  try {
+    const querySnapshot = await getDocs(collection(window.db, "checkIns"));
+    const history = [];
+    querySnapshot.forEach((doc) => {
+      history.push(doc.data());
+    });
+    return history;
+  } catch (err) {
+    console.error("Error loading check-in history:", err);
+    alert("Failed to load check-in history.");
+    return [];
+  }
 }
 
 // Function to load workspace settings
 function loadWorkspace() {
   return JSON.parse(localStorage.getItem("workspace")) || null;
-}
-
-// Function to load check-in history
-function loadHistory() {
-  return JSON.parse(localStorage.getItem("checkInHistory") || "[]");
-}
-
-// Function to clear check-in history
-function clearHistory() {
-  localStorage.removeItem("checkInHistory");
 }
 
 // Determine which page is loaded and initialize the appropriate functionality
